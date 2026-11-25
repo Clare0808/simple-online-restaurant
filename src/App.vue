@@ -12,48 +12,57 @@
       <router-link to="/user">
         <i class="fa-solid fa-user"></i>
       </router-link>
-      <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      <i
+        v-if="userStore.isAuthenticated"
+        class="fa-solid fa-arrow-right-from-bracket"
+        @click="Logout"
+      ></i>
     </div>
 
-    <router-link to="/login" class="login-sign-btn">登入/註冊 </router-link>
+    <router-link
+      v-if="!userStore.isAuthenticated"
+      to="/login"
+      class="login-sign-btn"
+      >登入/註冊
+    </router-link>
   </nav>
+
   <router-view />
+
+  <transition name="err-slide">
+    <ErrorMessage class="error-msg" v-show="errorStore.showErrorMsg" />
+  </transition>
+
+  <transition name="slide-check">
+    <LoadingEle v-if="errorStore.showLoader" />
+  </transition>
 </template>
 
 <script>
-import { ref, onMounted } from "vue";
+import { useUserStore } from "@/store/user";
+import { errorUiStore } from "@/store/error";
+import ErrorMessage from "@/components/ele/ErrorMessage.vue";
+import LoadingEle from "@/components/ele/LoadingEle.vue";
 
 export default {
+  components: {
+    ErrorMessage,
+    LoadingEle,
+  },
   setup() {
-    const showText = ref(false);
-    const showImage = ref(false);
+    const userStore = useUserStore();
+    const errorStore = errorUiStore();
 
-    onMounted(async () => {
-      showText.value = true;
-      showImage.value = true;
-
-      // if (!userStore.isAuthenticated) {
-      //   try {
-      //     await userStore.googleLogin();
-
-      //     errorStore.LoadSuccess("登入成功!");
-
-      //     localStorage.setItem("userEmail", userStore.user.email);
-      //     localStorage.setItem("userName", userStore.user.name);
-      //     localStorage.setItem("inAdmin", userStore.isAdmin);
-      //   } catch (err) {
-      //     if (err.message !== "Not logged in") {
-      //       errorStore.SetError(err.message);
-      //     }
-      //   }
-      // }
-
-      // await errorStore.CloseLoadEle();
-    });
+    const Logout = () => {
+      userStore.logout();
+      errorStore.SetSuccess("已登出");
+      errorStore.CloseEle();
+    };
 
     return {
-      showText,
-      showImage,
+      userStore,
+      errorStore,
+      Logout,
     };
   },
 };
