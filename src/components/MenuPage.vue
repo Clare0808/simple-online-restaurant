@@ -34,9 +34,6 @@
         </div>
       </transition>
     </div>
-    <div v-if="cartMessage" class="cart-message" role="status">
-      {{ cartMessage }}
-    </div>
     <transition name="fade">
       <div v-if="selectedDish" class="overlay" @click.self="closeOrder">
         <OrderDish
@@ -54,6 +51,8 @@ import { ref, onMounted } from "vue";
 import optionsData from "@/assets/data/optionsData.json";
 import OrderDish from "@/components/ele/OrderDish.vue";
 
+const CART_STORAGE_KEY = "restaurantCart";
+
 export default {
   name: "MenuPage",
   components: { OrderDish },
@@ -66,7 +65,6 @@ export default {
     const selectedCategory = ref("all");
     const filteredList = ref([]);
     const selectedDish = ref(null);
-    const cartMessage = ref("");
 
     const GetDishData = async () => {
       const response = await fetch("/data/dishData.json");
@@ -88,7 +86,6 @@ export default {
     };
 
     const openOrder = (dish) => {
-      cartMessage.value = "";
       selectedDish.value = dish;
     };
 
@@ -97,7 +94,26 @@ export default {
     };
 
     const handleAddToCart = ({ dish, amount }) => {
-      cartMessage.value = `${dish.name} × ${amount} 已選取；購物車後端尚未連接。`;
+      const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || "[]");
+      const existingOrder = cart.find((order) => order.id === dish.id);
+
+      if (existingOrder) {
+        existingOrder.amount += amount;
+        existingOrder.total = existingOrder.price * existingOrder.amount;
+      } else {
+        cart.push({
+          id: dish.id,
+          name: dish.name,
+          description: dish.description,
+          price: Number(dish.price) || 0,
+          image: dish.image,
+          amount,
+          total: (Number(dish.price) || 0) * amount,
+          check: false,
+        });
+      }
+
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
       closeOrder();
     };
 
@@ -117,7 +133,6 @@ export default {
       selectedCategory,
       filteredList,
       selectedDish,
-      cartMessage,
       showText,
       showElement,
       selectCategory,
@@ -199,7 +214,6 @@ export default {
   transition: all 0.3s ease;
 }
 .dish-frame:hover {
-  cursor: pointer;
   transform: scale(1.05);
 }
 .dish-frame img {
@@ -217,26 +231,6 @@ export default {
 }
 .dish-price {
   color: #f0c42d;
-}
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 98;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  background-color: rgba(0, 0, 0, 0.4);
-}
-.cart-message {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 2;
-  padding: 12px 18px;
-  color: #272727;
-  background-color: #ffea9d;
-  border-radius: 12px;
 }
 .slide-enter-active,
 .slide-leave-active {

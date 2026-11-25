@@ -1,13 +1,5 @@
 <template>
   <div class="order-page">
-    <button
-      class="close-btn"
-      type="button"
-      aria-label="關閉"
-      @click="$emit('close')"
-    >
-      ×
-    </button>
     <div class="title">訂購菜色</div>
     <img :src="selectedDish.image" :alt="selectedDish.name" />
     <div class="dish-info-frame">
@@ -21,7 +13,7 @@
         <div class="num-text">{{ dishAmount }}</div>
         <div class="num-btn" @click="countDishAmount('+')">+</div>
       </div>
-      <button class="btn" type="button" @click="addToCart">加入購物車</button>
+      <div class="btn" @click="addToCart">加入購物車</div>
     </div>
   </div>
 </template>
@@ -70,7 +62,11 @@ export default {
 
 <style scoped>
 .order-page {
-  position: relative;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99;
   width: 65%;
   background-color: #ffffff;
   border-radius: 20px;
@@ -80,15 +76,6 @@ export default {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-}
-.close-btn {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  border: 0;
-  background: transparent;
-  font-size: 30px;
-  cursor: pointer;
 }
 .title {
   color: #f0c42d;
@@ -154,9 +141,6 @@ img {
   line-height: 40px;
   text-align: center;
   transition: all 0.3s ease;
-  border: 0;
-  cursor: pointer;
-  font-family: inherit;
 }
 .btn:hover {
   color: #272727;

@@ -4,8 +4,6 @@
     <div class="function-frame">
       <router-link to="/">主頁</router-link>
       <router-link to="/menu">菜單</router-link>
-      <router-link to="/review">評論</router-link>
-      <div class="server">客服中心</div>
     </div>
     <div class="icon-frame">
       <router-link to="/cart">
