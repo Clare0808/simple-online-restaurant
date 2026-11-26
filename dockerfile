@@ -1,8 +1,8 @@
 FROM node:20-alpine AS frontend
 WORKDIR /build
 COPY package.json package-lock.json ./
-RUN npm ci
-COPY babel.config.js vue.config.js ./
+RUN npm ci --include=dev
+COPY babel.config.js vue.config.js .eslintrc.js .browserslistrc jsconfig.json ./
 COPY public ./public
 COPY src ./src
 RUN npm run build
