@@ -41,12 +41,6 @@ export default {
     };
 
     const addToCart = () => {
-      // TODO: 後端 API 尚未接好，恢復時再送出購物車請求。
-      // await fetch("/api/send-orders", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ dish: props.dish, amount: dishAmount.value }),
-      // });
       emit("add-to-cart", { dish: props.dish, amount: dishAmount.value });
     };
 

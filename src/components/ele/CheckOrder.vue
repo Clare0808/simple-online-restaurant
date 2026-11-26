@@ -72,18 +72,11 @@ export default {
     };
 
     const sendOrders = () => {
-      // 後端下單 API 尚未接好，恢復時可改為送出 orders、totalPrice、orderCode 與 orderTime。
-      // await fetch("/api/send-buy-orders", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     list: props.orders,
-      //     total: totalPrice.value,
-      //     code: orderCode.value,
-      //     date: orderTime.value,
-      //   }),
-      // });
-      emit("confirm");
+      emit("confirm", {
+        total: totalPrice.value,
+        code: orderCode.value,
+        date: orderTime.value,
+      });
     };
 
     onMounted(() => {

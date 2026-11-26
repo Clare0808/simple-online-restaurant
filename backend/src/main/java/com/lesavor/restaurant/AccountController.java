@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -32,6 +33,24 @@ public class AccountController {
     public AccountController(MongoStore mongoStore, @Value("${app.jwt.secret}") String jwtSecret) {
         this.mongoStore = mongoStore;
         this.jwtSecret = jwtSecret;
+    }
+
+    @GetMapping("/send-data")
+    public ResponseEntity<?> userData(@RequestParam String email) {
+        Map<String, Object> user = mongoStore.findByEmail(email.trim().toLowerCase(Locale.ROOT));
+        if (user == null) return error(HttpStatus.NOT_FOUND, "找不到使用者資料。");
+        return ResponseEntity.ok(publicUser(user));
+    }
+
+    @PostMapping("/now-login")
+    public ResponseEntity<?> currentUser(@RequestBody Map<String, Object> input) {
+        Map<String, Object> user = mongoStore.findByEmail(
+                text(input.get("email")).trim().toLowerCase(Locale.ROOT));
+        if (user == null) return error(HttpStatus.NOT_FOUND, "找不到使用者資料。");
+
+        Map<String, Object> result = publicUser(user);
+        for (String flag : FLAGS) result.put(flag, user.getOrDefault(flag, false));
+        return ResponseEntity.ok(Map.of("success", true, "user", result));
     }
 
     @PostMapping("/signup")
@@ -121,4 +140,8 @@ public class AccountController {
     private String text(Object value) {
         return Objects.toString(value, "");
     }
+
+    private static final String[] FLAGS = {
+        "dishClicked", "putInCartClicked", "orderClicked", "buyClicked", "reviewClicked", "serverClicked"
+    };
 }

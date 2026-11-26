@@ -53,8 +53,8 @@ export default {
     const userStore = useUserStore();
     const errorStore = errorUiStore();
 
-    const Logout = () => {
-      userStore.logout();
+    const Logout = async () => {
+      await userStore.logout();
       errorStore.SetSuccess("已登出");
       errorStore.CloseEle();
     };

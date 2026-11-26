@@ -20,14 +20,14 @@
               <div class="sec-title">訂餐紀錄</div>
               <div class="non-content" v-if="showNonContent">尚無訂單紀錄</div>
               <div class="order-outframe">
-                <div v-for="order in filteredData" :key="order">
+                <div v-for="order in filteredData" :key="order._id">
                   <div class="order-frame">
                     <div class="order-code">{{ order.code }}</div>
                     <div class="order-date">{{ order.date }}</div>
                     <div
                       class="order-info-frame"
                       v-for="dish in order.list"
-                      :key="dish"
+                      :key="dish._id || dish.name"
                     >
                       <div class="order-info">
                         <div class="order-dish">{{ dish.name }}</div>
@@ -44,34 +44,39 @@
       </div>
     </transition>
   </div>
-
-  <div class="overlay" v-show="showModify" @click="showModify = false"></div>
-  <transition name="slide-modify">
-    <ModifyUserInfo class="modify-page" v-if="showModify" />
-  </transition>
 </template>
 
 <script>
 import { ref, onMounted } from "vue";
+import { errorUiStore } from "@/store/error";
 
 export default {
   name: "UserPage",
   setup() {
+    const errorStore = errorUiStore();
     const showFade = ref(false);
     const showSlide = ref(false);
-    const filteredData = ref({});
+    const filteredData = ref([]);
     const userName = ref("");
     const userNumber = ref("");
     const showNonContent = ref(false);
     const isAdmin = ref(false);
 
     const GetOrderData = async () => {
-      const response = await fetch(`/api/get-buy-orders`);
-      const data = await response.json();
-
       const userMail = localStorage.getItem("userEmail");
+      if (!userMail) {
+        filteredData.value = [];
+        showNonContent.value = true;
+        return;
+      }
 
-      filteredData.value = data.filter((order) => order.email === userMail);
+      const response = await fetch(
+        `/api/get-buy-orders?email=${encodeURIComponent(userMail)}`
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "訂單紀錄載入失敗。");
+
+      filteredData.value = data;
 
       if (filteredData.value.length === 0) {
         showNonContent.value = true;
@@ -79,23 +84,23 @@ export default {
     };
 
     const GetUserInfo = async () => {
-      const response = await fetch(`/api/send-data`);
-      const data = await response.json();
-
       const userMail = localStorage.getItem("userEmail");
-
-      userName.value = data.filter((info) => info.email === userMail)[0].name;
-      userNumber.value = data.filter(
-        (info) => info.email === userMail
-      )[0].number;
-
-      const userRole = data.filter((info) => info.email === userMail)[0].role;
-
-      if (userRole === "admin") {
-        isAdmin.value = true;
-      } else {
+      if (!userMail) {
+        userName.value = "訪客";
+        userNumber.value = "請先登入";
         isAdmin.value = false;
+        return;
       }
+
+      const response = await fetch(
+        `/api/send-data?email=${encodeURIComponent(userMail)}`
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "使用者資料載入失敗。");
+
+      userName.value = data.name;
+      userNumber.value = data.number;
+      isAdmin.value = data.role === "admin";
 
       if (!userNumber.value) {
         userNumber.value = "電話尚未填入";
@@ -106,8 +111,12 @@ export default {
       showFade.value = true;
       showSlide.value = true;
 
-      await GetOrderData();
-      await GetUserInfo();
+      try {
+        await Promise.all([GetOrderData(), GetUserInfo()]);
+      } catch (error) {
+        errorStore.SetError(error.message || "使用者資料載入失敗。");
+        errorStore.CloseEle();
+      }
     });
 
     return {

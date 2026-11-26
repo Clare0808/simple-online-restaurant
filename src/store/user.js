@@ -33,13 +33,20 @@ export const useUserStore = defineStore("user", {
         throw new Error(msg);
       }
     },
-    logout() {
+    async logout() {
+      try {
+        await axios.get("/api/logout", { withCredentials: true });
+      } catch {
+        // Always clear local login data, even if the server is unavailable.
+      }
+
       this.user = null;
       this.token = null;
       this.isAuthenticated = false;
       localStorage.removeItem("token");
-
-      axios.get("/api/logout", { withCredentials: true });
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userName");
+      localStorage.removeItem("inAdmin");
     },
     async init(loginUser) {
       try {

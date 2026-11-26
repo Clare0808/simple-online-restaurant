@@ -48,16 +48,20 @@
 
 <script>
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import optionsData from "@/assets/data/optionsData.json";
 import OrderDish from "@/components/ele/OrderDish.vue";
-
-const CART_STORAGE_KEY = "restaurantCart";
+import { useUserStore } from "@/store/user";
+import { errorUiStore } from "@/store/error";
 
 export default {
   name: "MenuPage",
   components: { OrderDish },
 
   setup() {
+    const router = useRouter();
+    const userStore = useUserStore();
+    const errorStore = errorUiStore();
     const dishList = ref([]);
     const showText = ref(false);
     const showElement = ref(false);
@@ -93,28 +97,40 @@ export default {
       selectedDish.value = null;
     };
 
-    const handleAddToCart = ({ dish, amount }) => {
-      const cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || "[]");
-      const existingOrder = cart.find((order) => order.id === dish.id);
-
-      if (existingOrder) {
-        existingOrder.amount += amount;
-        existingOrder.total = existingOrder.price * existingOrder.amount;
-      } else {
-        cart.push({
-          id: dish.id,
-          name: dish.name,
-          description: dish.description,
-          price: Number(dish.price) || 0,
-          image: dish.image,
-          amount,
-          total: (Number(dish.price) || 0) * amount,
-          check: false,
-        });
+    const handleAddToCart = async ({ dish, amount }) => {
+      const email = userStore.user?.email || localStorage.getItem("userEmail");
+      if (!email) {
+        errorStore.SetError("請先登入，再加入購物車。");
+        errorStore.CloseEle();
+        closeOrder();
+        router.push("/login");
+        return;
       }
 
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-      closeOrder();
+      try {
+        const response = await fetch("/api/send-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email,
+            name: dish.name,
+            amount,
+            price: Number(dish.price) || 0,
+            image: dish.image,
+            check: false,
+            total: (Number(dish.price) || 0) * amount,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || "加入購物車失敗");
+
+        errorStore.SetSuccess("已加入購物車!");
+        errorStore.CloseEle();
+        closeOrder();
+      } catch (error) {
+        errorStore.SetError(error.message || "無法連接購物車服務。");
+        errorStore.CloseEle();
+      }
     };
 
     onMounted(async () => {
@@ -124,7 +140,8 @@ export default {
       try {
         await GetDishData();
       } catch (error) {
-        console.error(error);
+        errorStore.SetError(error.message || "菜單載入失敗。");
+        errorStore.CloseEle();
       }
     });
 

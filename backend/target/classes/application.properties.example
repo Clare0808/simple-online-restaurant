@@ -1,0 +1,7 @@
+server.port=${PORT:3001}
+
+# 填入 MongoDB 連線字串，例如：mongodb+srv://user:pass@cluster.mongodb.net/dbname
+spring.data.mongodb.uri=${MONGO_URL:}
+
+# 填入 32 字元的隨機字串作為 JWT 密鑰
+app.jwt.secret=${JWT_SECRET:}

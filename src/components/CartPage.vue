@@ -18,7 +18,7 @@
         <div
           class="dish-box-outframe"
           v-for="(order, index) in filteredData"
-          :key="order.id"
+          :key="order._id"
         >
           <div class="dish-box">
             <img :src="order.image" />
@@ -38,12 +38,7 @@
               <div class="dish-total-price">${{ order.total }}</div>
             </div>
             <div class="btn-frame">
-              <input
-                class="checkbox"
-                type="checkbox"
-                v-model="order.check"
-                @change="persistCart"
-              />
+              <input class="checkbox" type="checkbox" v-model="order.check" />
               <i
                 class="fa-solid fa-trash-can"
                 id="cancel-btn"
@@ -79,8 +74,7 @@
 <script>
 import { ref, computed, onMounted } from "vue";
 import CheckOrder from "./ele/CheckOrder.vue";
-
-const CART_STORAGE_KEY = "restaurantCart";
+import { errorUiStore } from "@/store/error";
 
 export default {
   name: "CartPage",
@@ -88,6 +82,7 @@ export default {
     CheckOrder,
   },
   setup() {
+    const errorStore = errorUiStore();
     const showFade = ref(false);
     const showSlide = ref(false);
     const filteredData = ref([]);
@@ -114,40 +109,60 @@ export default {
       }
 
       order.total = order.price * order.amount;
-      persistCart();
+      updateOrder(order);
     };
 
-    const GetOrderData = () => {
-      // 後端讀取購物車 API 尚未接好，先改從 localStorage 載入。
-      // const response = await fetch("/api/get-orders");
-      // const data = await response.json();
+    const email = () => localStorage.getItem("userEmail");
+
+    const request = async (url, options = {}) => {
+      const response = await fetch(url, options);
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "伺服器請求失敗。");
+      }
+      return result;
+    };
+
+    const GetOrderData = async () => {
+      const userEmail = email();
+      if (!userEmail) {
+        filteredData.value = [];
+        return;
+      }
       try {
-        const savedCart = JSON.parse(
-          localStorage.getItem(CART_STORAGE_KEY) || "[]"
+        const orders = await request(
+          `/api/get-orders?email=${encodeURIComponent(userEmail)}`
         );
-        filteredData.value = Array.isArray(savedCart)
-          ? savedCart.map((order, index) => ({
-              ...order,
-              id: order.id ?? `${order.name}-${index}`,
-              amount: Math.max(1, Number(order.amount) || 1),
-              price: Number(order.price) || 0,
-              check: Boolean(order.check),
-              total:
-                (Number(order.price) || 0) *
-                Math.max(1, Number(order.amount) || 1),
-            }))
-          : [];
+        filteredData.value = orders.map((order) => ({
+          ...order,
+          amount: Math.max(1, Number(order.amount) || 1),
+          price: Number(order.price) || 0,
+          check: false,
+          total:
+            Number(order.price || 0) * Math.max(1, Number(order.amount) || 1),
+        }));
       } catch (error) {
-        console.error("購物車資料讀取失敗", error);
+        errorStore.SetError(error.message || "購物車載入失敗。");
+        errorStore.CloseEle();
         filteredData.value = [];
       }
     };
 
-    const persistCart = () => {
-      localStorage.setItem(
-        CART_STORAGE_KEY,
-        JSON.stringify(filteredData.value)
-      );
+    const updateOrder = async (order) => {
+      try {
+        await request("/api/update-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email(),
+            id: order._id,
+            amount: order.amount,
+          }),
+        });
+      } catch (error) {
+        errorStore.SetError(error.message || "餐點數量更新失敗。");
+        errorStore.CloseEle();
+      }
     };
 
     const ClickBuy = () => {
@@ -155,42 +170,86 @@ export default {
         (order) => order.check === true
       );
 
-      if (buyList.value.length > 0) {
+      if (!email()) {
+        errorStore.SetError("請先登入，再進行結帳。");
+        errorStore.CloseEle();
+      } else if (buyList.value.length > 0) {
         showCheck.value = true;
+      } else {
+        errorStore.SetError("請先選擇要結帳的餐點。");
+        errorStore.CloseEle();
       }
     };
 
-    const RemoveOrder = (index) => {
-      filteredData.value.splice(index, 1);
-      persistCart();
+    const RemoveOrder = async (index) => {
+      const order = filteredData.value[index];
+      try {
+        await request("/api/remove-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email(), list: [order._id] }),
+        });
+        filteredData.value.splice(index, 1);
+      } catch (error) {
+        errorStore.SetError(error.message || "餐點刪除失敗。");
+        errorStore.CloseEle();
+      }
     };
 
-    const RemoveAllOrder = () => {
-      filteredData.value = [];
-      buyList.value = [];
-      persistCart();
+    const RemoveAllOrder = async () => {
+      if (!filteredData.value.length) return;
+      try {
+        await request("/api/remove-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email(),
+            list: filteredData.value.map((order) => order._id),
+          }),
+        });
+        filteredData.value = [];
+        buyList.value = [];
+      } catch (error) {
+        errorStore.SetError(error.message || "清空購物車失敗。");
+        errorStore.CloseEle();
+      }
     };
 
     const SelectAll = () => {
       const shouldSelectAll = !selectAllClick.value;
       filteredData.value.forEach((item) => (item.check = shouldSelectAll));
-      persistCart();
     };
 
-    const CompleteCheckout = () => {
-      // 後端送出訂單與刪除購物車 API 尚未接好，先在本機完成確認流程。
-      // await fetch("/api/send-buy-orders", { method: "POST", ... });
-      // await fetch("/api/remove-orders", { method: "POST", ... });
-      const purchasedIds = new Set(buyList.value.map((order) => order.id));
-      filteredData.value = filteredData.value.filter(
-        (order) => !purchasedIds.has(order.id)
-      );
-      buyList.value = [];
-      showCheck.value = false;
-      persistCart();
+    const CompleteCheckout = async (checkout) => {
+      const purchasedIds = new Set(buyList.value.map((order) => order._id));
+      const orderIds = buyList.value.map((order) => order._id);
+      try {
+        await request("/api/send-buy-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email(),
+            list: buyList.value,
+            total: checkout.total,
+            code: checkout.code,
+            date: checkout.date,
+            orderIds,
+          }),
+        });
+        filteredData.value = filteredData.value.filter(
+          (order) => !purchasedIds.has(order._id)
+        );
+        buyList.value = [];
+        showCheck.value = false;
+        errorStore.SetSuccess("訂單已送出!");
+        errorStore.CloseEle();
+      } catch (error) {
+        errorStore.SetError(error.message || "訂單送出失敗。");
+        errorStore.CloseEle();
+      }
     };
 
-    onMounted(async () => {
+    onMounted(() => {
       showFade.value = true;
       showSlide.value = true;
 

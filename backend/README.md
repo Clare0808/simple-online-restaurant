@@ -1,6 +1,6 @@
 # Java login backend
 
-The backend exposes `POST /api/signup` and `POST /api/login` and stores accounts in MongoDB collection `logins`. Passwords are stored as BCrypt hashes. Google login is not included.
+The backend exposes local sign-up/login endpoints plus cart and purchase-history endpoints. Accounts use MongoDB collection `logins`; cart entries use `orders`; completed purchases use `buys`. Passwords are stored as BCrypt hashes. Google login is not included.
 
 Requirements: Java 17+, Maven, and a running MongoDB instance.
 
