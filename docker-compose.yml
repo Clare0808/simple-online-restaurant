@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      MONGO_URL: mongodb://mongo:27017/simple_online_restaurant
+      JWT_SECRET: ${JWT_SECRET:-local-docker-development-secret-change-me-32chars}
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:

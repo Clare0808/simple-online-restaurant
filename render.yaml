@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: simple-online-restaurant
+    runtime: docker
+    plan: free
+    dockerfilePath: ./dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: MONGO_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
