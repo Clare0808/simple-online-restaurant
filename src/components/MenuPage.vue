@@ -98,9 +98,17 @@ export default {
     };
 
     const handleAddToCart = async ({ dish, amount }) => {
+      if (!userStore.isAuthenticated) {
+        errorStore.SetError("請先登入!");
+        errorStore.CloseEle();
+        closeOrder();
+        router.push("/login");
+        return;
+      }
+
       const email = userStore.user?.email || localStorage.getItem("userEmail");
       if (!email) {
-        errorStore.SetError("請先登入，再加入購物車。");
+        errorStore.SetError("請先登入!");
         errorStore.CloseEle();
         closeOrder();
         router.push("/login");

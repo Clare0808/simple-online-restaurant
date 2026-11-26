@@ -5,18 +5,14 @@
       <router-link to="/">主頁</router-link>
       <router-link to="/menu">菜單</router-link>
     </div>
-    <div class="icon-frame">
+    <div class="icon-frame" v-if="userStore.isAuthenticated">
       <router-link to="/cart">
         <i class="fa-solid fa-cart-shopping"></i>
       </router-link>
       <router-link to="/user">
         <i class="fa-solid fa-user"></i>
       </router-link>
-      <i
-        v-if="userStore.isAuthenticated"
-        class="fa-solid fa-arrow-right-from-bracket"
-        @click="Logout"
-      ></i>
+      <i class="fa-solid fa-arrow-right-from-bracket" @click="HandleLogout"></i>
     </div>
 
     <router-link
@@ -29,6 +25,20 @@
 
   <router-view />
 
+  <div
+    class="overlay"
+    v-if="showLogoutCheck"
+    @click="showLogoutCheck = false"
+  ></div>
+  <transition name="slide-check">
+    <LogoutCheck
+      class="logout-check"
+      v-if="showLogoutCheck"
+      @cancel="showLogoutCheck = false"
+      @confirm="Logout"
+    />
+  </transition>
+
   <transition name="err-slide">
     <ErrorMessage class="error-msg" v-show="errorStore.showErrorMsg" />
   </transition>
@@ -39,29 +49,43 @@
 </template>
 
 <script>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 import { useUserStore } from "@/store/user";
 import { errorUiStore } from "@/store/error";
 import ErrorMessage from "@/components/ele/ErrorMessage.vue";
 import LoadingEle from "@/components/ele/LoadingEle.vue";
+import LogoutCheck from "@/components/ele/LogoutCheck.vue";
 
 export default {
   components: {
     ErrorMessage,
     LoadingEle,
+    LogoutCheck,
   },
   setup() {
+    const router = useRouter();
     const userStore = useUserStore();
     const errorStore = errorUiStore();
+    const showLogoutCheck = ref(false);
+
+    const HandleLogout = () => {
+      showLogoutCheck.value = true;
+    };
 
     const Logout = async () => {
+      showLogoutCheck.value = false;
       await userStore.logout();
-      errorStore.SetSuccess("已登出");
-      errorStore.CloseEle();
+      errorStore.LoadSuccess("登出成功!");
+      await errorStore.CloseLoadEle();
+      router.push("/login");
     };
 
     return {
       userStore,
       errorStore,
+      showLogoutCheck,
+      HandleLogout,
       Logout,
     };
   },
