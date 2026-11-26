@@ -99,7 +99,7 @@ export default {
             if (userStore.isAuthenticated) {
               errorStore.LoadSuccess("登入成功!");
 
-              localStorage.setItem("userEmail", email.value);
+              localStorage.setItem("userEmail", userStore.user.email);
               localStorage.setItem("userName", userStore.user.name);
               localStorage.setItem("inAdmin", userStore.isAdmin);
 
@@ -120,30 +120,27 @@ export default {
     const ClickSignUp = async () => {
       ExamInputFrame();
 
-      if (!errorStore.errorType) {
-        try {
-          if (!errorStore.errorType) {
-            errorStore.SetSuccess("註冊成功!");
-
-            await userStore.signup({
-              email: email.value,
-              name: name.value,
-              number: number.value,
-              password: password.value,
-            });
-
-            CleanInput();
-
-            setTimeout(() => {
-              ClickChangeType();
-            }, 2000);
-          }
-        } catch (err) {
-          errorStore.SetError(err.message);
-        }
+      if (errorStore.errorType) {
+        errorStore.CloseEle();
+        return;
       }
 
-      errorStore.CloseEle();
+      try {
+        await userStore.signup({
+          email: email.value,
+          name: name.value,
+          number: number.value,
+          password: password.value,
+        });
+
+        errorStore.LoadSuccess("註冊成功!");
+        CleanInput();
+        await errorStore.CloseLoadEle();
+        ClickChangeType();
+      } catch (err) {
+        errorStore.SetError(err.message);
+        errorStore.CloseEle();
+      }
     };
 
     const CleanInput = () => {
