@@ -17,6 +17,6 @@ RUN mvn -f backend/pom.xml -B -DskipTests package
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=backend-build /build/backend/target/restaurant-backend-1.0.0.jar app.jar
-ENV PORT=3001
-EXPOSE 3001
+ENV PORT=10000
+EXPOSE 10000
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

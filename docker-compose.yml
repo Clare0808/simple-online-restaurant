@@ -4,9 +4,9 @@ services:
       context: .
       dockerfile: dockerfile
     ports:
-      - "3001:3001"
+      - "3001:10000"
     environment:
-      PORT: 3001
+      PORT: 10000
       MONGO_URL: mongodb://mongo:27017/simple_online_restaurant
       JWT_SECRET: ${JWT_SECRET:-local-docker-development-secret-change-me-32chars}
     depends_on:
