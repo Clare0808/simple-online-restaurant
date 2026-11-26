@@ -3,6 +3,7 @@ node_modules
 /dist
 
 application.properties
+!backend/src/main/resources/application.properties
 
 # local env files
 .env
